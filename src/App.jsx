@@ -52,7 +52,7 @@ function App() {
 
     } catch (error) {
       console.log(error);
-      setResult("Something went wrong");
+      setResult(["Something went wrong"]);
     }
   };
 
