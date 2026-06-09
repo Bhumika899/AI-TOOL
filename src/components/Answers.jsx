@@ -1,18 +1,10 @@
-// const Answer = ({ ans, key }) => {
-//     console.log(ans, key)
-//     return (
-//         <>
+import ReactMarkdown from "react-markdown";
 
-//             {ans}</>
-//     )
-// }
-// export default Answer
 const Answer = ({ ans }) => {
-
     return (
-        <>
-            {ans}
-        </>
+        <div className="prose prose-invert max-w-none">
+            <ReactMarkdown>{ans}</ReactMarkdown>
+        </div>
     );
 };
 

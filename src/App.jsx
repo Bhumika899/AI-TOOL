@@ -4,102 +4,110 @@ import { URL } from "./assets/constants";
 import Answer from "./components/Answers";
 
 function App() {
-
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const askQuestion = async () => {
+    if (!question.trim() || loading) return;
+
+    setLoading(true);
 
     try {
-
-      const payload = {
-        contents: [
-          {
-            parts: [
-              {
-                text: question,
-              },
-            ],
-          },
-        ],
-      };
-
-      let response = await fetch(URL, {
+      const response = await fetch(URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          messages: [
+            {
+              role: "system",
+              content:
+                "Format responses using markdown headings, bullet points, and proper spacing.",
+            },
+            {
+              role: "user",
+              content: question,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 1024,
+        }),
       });
 
-      response = await response.json();
+      const data = await response.json();
 
-      console.log(response);
+      console.log(data);
 
-      if (response.error) {
-        setResult([response.error.message]);
+      if (data.error) {
+        setResult([data.error.message]);
         return;
       }
 
-      const text =
-        response.candidates[0].content.parts[0].text;
+      const answer =
+        data?.choices?.[0]?.message?.content ||
+        "No response received.";
 
-      const dataArray = text
-        .split("*")
-        .filter(item => item.trim() !== "");
+      // Store the complete markdown response
+      setResult([answer]);
 
-      setResult(dataArray);
-
+      setQuestion("");
     } catch (error) {
-      console.log(error);
-      setResult(["Something went wrong"]);
+      console.error(error);
+      setResult(["Something went wrong."]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      askQuestion();
     }
   };
 
   return (
-    <>
-      <div className="grid grid-cols-5 h-screen">
+    <div className="grid grid-cols-5 h-screen">
+      {/* Sidebar */}
+      <div className="col-span-1 bg-zinc-800"></div>
 
-        {/* Sidebar */}
-        <div className="col-span-1 bg-zinc-800"></div>
+      {/* Main Content */}
+      <div className="col-span-4 p-10 flex flex-col">
+        {/* Answers */}
+        <div className="flex-1 overflow-y-auto text-zinc-300 px-4">
+          <ul>
+            {result.map((item, index) => (
+              <li key={index + Math.random()} className="mb-4">
+                <Answer ans={item.text} />
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        {/* Main Content */}
-        <div className="col-span-4 p-10">
+        {/* Input Area */}
+        <div className="bg-zinc-800 w-1/2 text-white p-1 pr-5 h-16 m-auto rounded-4xl border border-zinc-700 flex items-center">
+          <input
+            type="text"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-full h-full p-3 outline-none bg-transparent"
+            placeholder="Ask me anything"
+          />
 
-          <div className="container h-120">
-            <div className="text-white whitespace-pre-wrap">
-
-              <ul>
-                {
-                  result && result.map((item, index) => (
-                    <li className="text-left p-10" key={index}>
-                      <Answer ans={item} />
-                    </li>
-                  ))
-                }
-              </ul>
-            </div>
-          </div>
-
-          <div className="bg-zinc-800 w-1/2 text-white p-1 pr-5 h-16 m-auto rounded-4xl border border-zinc-700 flex items-center">
-
-            <input
-              type="text"
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              className="w-full h-full p-3 outline-none bg-transparent"
-              placeholder="Ask me anything"
-            />
-
-            <button onClick={askQuestion}>
-              Ask
-            </button>
-
-          </div>
-
+          <button
+            onClick={askQuestion}
+            disabled={loading}
+            className="px-4 py-2"
+          >
+            {loading ? "..." : "Ask"}
+          </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
