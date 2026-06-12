@@ -5,12 +5,24 @@ import Answer from "./components/Answers";
 
 function App() {
   const [question, setQuestion] = useState("");
-  const [result, setResult] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const askQuestion = async () => {
     if (!question.trim() || loading) return;
 
+    const userQuestion = question;
+
+    // Show user message immediately
+    setMessages((prev) => [
+      ...prev,
+      {
+        type: "question",
+        text: userQuestion,
+      },
+    ]);
+
+    setQuestion("");
     setLoading(true);
 
     try {
@@ -25,12 +37,20 @@ function App() {
           messages: [
             {
               role: "system",
-              content:
-                "Format responses using markdown headings, bullet points, and proper spacing.",
+              content: `
+Return responses in Markdown format.
+
+Use:
+# Main Heading
+## Sub Heading
+- Bullet points
+
+Make answers clean and well formatted.
+              `,
             },
             {
               role: "user",
-              content: question,
+              content: userQuestion,
             },
           ],
           temperature: 0.7,
@@ -42,22 +62,27 @@ function App() {
 
       console.log(data);
 
-      if (data.error) {
-        setResult([data.error.message]);
-        return;
-      }
-
       const answer =
         data?.choices?.[0]?.message?.content ||
         "No response received.";
 
-      // Store the complete markdown response
-      setResult([answer]);
-
-      setQuestion("");
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "answer",
+          text: answer,
+        },
+      ]);
     } catch (error) {
       console.error(error);
-      setResult(["Something went wrong."]);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "answer",
+          text: "Something went wrong.",
+        },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -70,41 +95,66 @@ function App() {
   };
 
   return (
-    <div className="grid grid-cols-5 h-screen">
+    <div className="grid grid-cols-5 h-screen bg-zinc-900">
       {/* Sidebar */}
       <div className="col-span-1 bg-zinc-800"></div>
 
       {/* Main Content */}
-      <div className="col-span-4 p-10 flex flex-col">
-        {/* Answers */}
-        <div className="flex-1 overflow-y-auto text-zinc-300 px-4">
-          <ul>
-            {result.map((item, index) => (
-              <li key={index + Math.random()} className="mb-4">
-                <Answer ans={item.text} />
-              </li>
-            ))}
-          </ul>
+      <div className="col-span-4 flex flex-col">
+        {/* Chat Area */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`flex mb-4 ${msg.type === "question"
+                  ? "justify-end"
+                  : "justify-start"
+                }`}
+            >
+              <div
+                className={`max-w-[75%] px-5 py-3 rounded-2xl ${msg.type === "question"
+                    ? "bg-blue-600 text-white"
+                    : "bg-zinc-800 text-white"
+                  }`}
+              >
+                {msg.type === "answer" ? (
+                  <Answer ans={msg.text} />
+                ) : (
+                  <p>{msg.text}</p>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {loading && (
+            <div className="flex justify-start mb-4">
+              <div className="bg-zinc-800 text-white px-5 py-3 rounded-2xl">
+                Thinking...
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Input Area */}
-        <div className="bg-zinc-800 w-1/2 text-white p-1 pr-5 h-16 m-auto rounded-4xl border border-zinc-700 flex items-center">
-          <input
-            type="text"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full h-full p-3 outline-none bg-transparent"
-            placeholder="Ask me anything"
-          />
+        {/* Input Box */}
+        <div className="p-6">
+          <div className="bg-zinc-800 border border-zinc-700 rounded-3xl flex items-center px-4 py-2 w-3/4 mx-auto">
+            <input
+              type="text"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask me anything..."
+              className="flex-1 bg-transparent text-white outline-none p-3"
+            />
 
-          <button
-            onClick={askQuestion}
-            disabled={loading}
-            className="px-4 py-2"
-          >
-            {loading ? "..." : "Ask"}
-          </button>
+            <button
+              onClick={askQuestion}
+              disabled={loading}
+              className="text-white px-4 py-2"
+            >
+              {loading ? "..." : "Ask"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
