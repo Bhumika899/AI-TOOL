@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 import { URL } from "./assets/constants";
 import Answer from "./components/Answers";
@@ -7,13 +7,54 @@ function App() {
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [recentHistory, setRecentHistory] = useState([]);
+
+  useEffect(() => {
+    try {
+      const history =
+        JSON.parse(localStorage.getItem("history")) || [];
+
+      setRecentHistory(history);
+    } catch (error) {
+      setRecentHistory([]);
+    }
+  }, []);
 
   const askQuestion = async () => {
     if (!question.trim() || loading) return;
 
     const userQuestion = question;
 
-    // Show user message immediately
+    // Save History
+    let history = [];
+
+    try {
+      const storedHistory = localStorage.getItem("history");
+
+      history = storedHistory
+        ? JSON.parse(storedHistory)
+        : [];
+
+      if (!Array.isArray(history)) {
+        history = [];
+      }
+    } catch {
+      history = [];
+    }
+
+    const updatedHistory = [
+      userQuestion,
+      ...history,
+    ];
+
+    localStorage.setItem(
+      "history",
+      JSON.stringify(updatedHistory)
+    );
+
+    setRecentHistory(updatedHistory);
+
+    // Show Question
     setMessages((prev) => [
       ...prev,
       {
@@ -37,16 +78,8 @@ function App() {
           messages: [
             {
               role: "system",
-              content: `
-Return responses in Markdown format.
-
-Use:
-# Main Heading
-## Sub Heading
-- Bullet points
-
-Make answers clean and well formatted.
-              `,
+              content:
+                "Respond in Markdown using headings, bullet points and formatting.",
             },
             {
               role: "user",
@@ -61,6 +94,12 @@ Make answers clean and well formatted.
       const data = await response.json();
 
       console.log(data);
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error?.message || "Request failed"
+        );
+      }
 
       const answer =
         data?.choices?.[0]?.message?.content ||
@@ -97,7 +136,30 @@ Make answers clean and well formatted.
   return (
     <div className="grid grid-cols-5 h-screen bg-zinc-900">
       {/* Sidebar */}
-      <div className="col-span-1 bg-zinc-800"></div>
+      <div className="col-span-1 bg-zinc-800 p-4 overflow-y-auto">
+        <h2 className="text-white text-xl font-bold mb-4">
+          Recent Chats
+        </h2>
+
+        {recentHistory.map((item, index) => (
+          <div
+            key={index}
+            className="text-zinc-300 p-2 rounded cursor-pointer hover:bg-zinc-700 mb-2 truncate"
+          >
+            {item}
+          </div>
+        ))}
+
+        {/* <button
+          onClick={() => {
+            localStorage.removeItem("history");
+            setRecentHistory([]);
+          }}
+          className="mt-4 bg-red-500 text-white px-4 py-2 rounded"
+        >
+          Clear History
+        </button> */}
+      </div>
 
       {/* Main Content */}
       <div className="col-span-4 flex flex-col">
@@ -107,14 +169,14 @@ Make answers clean and well formatted.
             <div
               key={index}
               className={`flex mb-4 ${msg.type === "question"
-                  ? "justify-end"
-                  : "justify-start"
+                ? "justify-end"
+                : "justify-start"
                 }`}
             >
               <div
                 className={`max-w-[75%] px-5 py-3 rounded-2xl ${msg.type === "question"
-                    ? "bg-blue-600 text-white"
-                    : "bg-zinc-800 text-white"
+                  ? "bg-blue-600 text-white"
+                  : "bg-zinc-800 text-white"
                   }`}
               >
                 {msg.type === "answer" ? (
@@ -127,7 +189,7 @@ Make answers clean and well formatted.
           ))}
 
           {loading && (
-            <div className="flex justify-start mb-4">
+            <div className="flex justify-start">
               <div className="bg-zinc-800 text-white px-5 py-3 rounded-2xl">
                 Thinking...
               </div>
@@ -135,13 +197,15 @@ Make answers clean and well formatted.
           )}
         </div>
 
-        {/* Input Box */}
+        {/* Input */}
         <div className="p-6">
           <div className="bg-zinc-800 border border-zinc-700 rounded-3xl flex items-center px-4 py-2 w-3/4 mx-auto">
             <input
               type="text"
               value={question}
-              onChange={(e) => setQuestion(e.target.value)}
+              onChange={(e) =>
+                setQuestion(e.target.value)
+              }
               onKeyDown={handleKeyDown}
               placeholder="Ask me anything..."
               className="flex-1 bg-transparent text-white outline-none p-3"
