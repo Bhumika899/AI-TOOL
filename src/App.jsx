@@ -20,12 +20,26 @@ function App() {
     }
   }, []);
 
+  // Delete a particular history item
+  const deleteHistory = (indexToDelete) => {
+    const updatedHistory = recentHistory.filter(
+      (_, index) => index !== indexToDelete
+    );
+
+    setRecentHistory(updatedHistory);
+
+    localStorage.setItem(
+      "history",
+      JSON.stringify(updatedHistory)
+    );
+  };
+
   const askQuestion = async () => {
     if (!question.trim() || loading) return;
 
     const userQuestion = question;
 
-    // Save History
+    // Get existing history
     let history = [];
 
     try {
@@ -42,10 +56,11 @@ function App() {
       history = [];
     }
 
+    // Add latest question to history
     const updatedHistory = [
       userQuestion,
       ...history,
-    ];
+    ].slice(0, 20);
 
     localStorage.setItem(
       "history",
@@ -54,7 +69,7 @@ function App() {
 
     setRecentHistory(updatedHistory);
 
-    // Show Question
+    // Show question in chat
     setMessages((prev) => [
       ...prev,
       {
@@ -92,8 +107,6 @@ function App() {
       });
 
       const data = await response.json();
-
-      console.log(data);
 
       if (!response.ok) {
         throw new Error(
@@ -133,6 +146,11 @@ function App() {
     }
   };
 
+  const clearHistory = () => {
+    localStorage.removeItem("history");
+    setRecentHistory([]);
+  };
+
   return (
     <div className="grid grid-cols-5 h-screen bg-zinc-900">
       {/* Sidebar */}
@@ -141,24 +159,38 @@ function App() {
           Recent Chats
         </h2>
 
-        {recentHistory.map((item, index) => (
-          <div
-            key={index}
-            className="text-zinc-300 p-2 rounded cursor-pointer hover:bg-zinc-700 mb-2 truncate"
-          >
-            {item}
-          </div>
-        ))}
+        {recentHistory.length > 0 ? (
+          recentHistory.map((item, index) => (
+            <div
+              key={index}
+              className="flex justify-between items-center p-2 mb-2 rounded hover:bg-zinc-700"
+            >
+              <span className="text-zinc-300 truncate flex-1">
+                {item}
+              </span>
 
-        {/* <button
-          onClick={() => {
-            localStorage.removeItem("history");
-            setRecentHistory([]);
-          }}
-          className="mt-4 bg-red-500 text-white px-4 py-2 rounded"
-        >
-          Clear History
-        </button> */}
+              <button
+                onClick={() => deleteHistory(index)}
+                className="text-red-400 hover:text-red-600 ml-2"
+              >
+                ✕
+              </button>
+            </div>
+          ))
+        ) : (
+          <p className="text-zinc-400">
+            No chat history found.
+          </p>
+        )}
+
+        {recentHistory.length > 0 && (
+          <button
+            onClick={clearHistory}
+            className="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+          >
+            Clear History
+          </button>
+        )}
       </div>
 
       {/* Main Content */}
@@ -169,14 +201,14 @@ function App() {
             <div
               key={index}
               className={`flex mb-4 ${msg.type === "question"
-                ? "justify-end"
-                : "justify-start"
+                  ? "justify-end"
+                  : "justify-start"
                 }`}
             >
               <div
                 className={`max-w-[75%] px-5 py-3 rounded-2xl ${msg.type === "question"
-                  ? "bg-blue-600 text-white"
-                  : "bg-zinc-800 text-white"
+                    ? "bg-blue-600 text-white"
+                    : "bg-zinc-800 text-white"
                   }`}
               >
                 {msg.type === "answer" ? (
@@ -197,7 +229,7 @@ function App() {
           )}
         </div>
 
-        {/* Input */}
+        {/* Input Section */}
         <div className="p-6">
           <div className="bg-zinc-800 border border-zinc-700 rounded-3xl flex items-center px-4 py-2 w-3/4 mx-auto">
             <input
