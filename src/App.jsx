@@ -8,6 +8,7 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [recentHistory, setRecentHistory] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     try {
@@ -150,6 +151,9 @@ function App() {
     localStorage.removeItem("history");
     setRecentHistory([]);
   };
+  const filteredHistory = recentHistory.filter((item) =>
+    item.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="grid grid-cols-5 h-screen bg-zinc-900">
@@ -158,9 +162,15 @@ function App() {
         <h2 className="text-white text-xl font-bold mb-4">
           Recent Chats
         </h2>
-
-        {recentHistory.length > 0 ? (
-          recentHistory.map((item, index) => (
+        <input
+          type="text"
+          placeholder="Search chats..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-2 mb-4 rounded bg-zinc-700 text-white outline-none"
+        />
+        {filteredHistory.length > 0 ? (
+          filteredHistory.map((item, index) => (
             <div
               key={index}
               className="flex justify-between items-center p-2 mb-2 rounded hover:bg-zinc-700"
@@ -170,7 +180,9 @@ function App() {
               </span>
 
               <button
-                onClick={() => deleteHistory(index)}
+                onClick={() =>
+                  deleteHistory(recentHistory.indexOf(item))
+                }
                 className="text-red-400 hover:text-red-600 ml-2"
               >
                 ✕
@@ -179,7 +191,9 @@ function App() {
           ))
         ) : (
           <p className="text-zinc-400">
-            No chat history found.
+            {searchTerm
+              ? "No matching chats found."
+              : "No chat history found."}
           </p>
         )}
 
@@ -201,14 +215,14 @@ function App() {
             <div
               key={index}
               className={`flex mb-4 ${msg.type === "question"
-                  ? "justify-end"
-                  : "justify-start"
+                ? "justify-end"
+                : "justify-start"
                 }`}
             >
               <div
                 className={`max-w-[75%] px-5 py-3 rounded-2xl ${msg.type === "question"
-                    ? "bg-blue-600 text-white"
-                    : "bg-zinc-800 text-white"
+                  ? "bg-blue-600 text-white"
+                  : "bg-zinc-800 text-white"
                   }`}
               >
                 {msg.type === "answer" ? (
