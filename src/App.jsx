@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useId } from "react";
 import "./App.css";
 import { URL } from "./assets/constants";
 import Answer from "./components/Answers";
@@ -9,6 +9,13 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [recentHistory, setRecentHistory] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const messagesEndRef = useRef(null);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages, loading]);
+
 
   useEffect(() => {
     try {
@@ -159,7 +166,7 @@ function App() {
     <div className="grid grid-cols-5 h-screen bg-zinc-900">
       {/* Sidebar */}
       <div className="col-span-1 bg-zinc-800 p-4 overflow-y-auto">
-        <h2 className="text-white text-xl font-bold mb-4">
+        <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
           Recent Chats
         </h2>
         <input
@@ -211,6 +218,19 @@ function App() {
       <div className="col-span-4 flex flex-col">
         {/* Chat Area */}
         <div className="flex-1 overflow-y-auto p-6">
+
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full">
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                React AI
+              </h1>
+
+              <p className="text-zinc-400 mt-4">
+                Ask anything and get instant answers
+              </p>
+            </div>
+          )}
+
           {messages.map((msg, index) => (
             <div
               key={index}
@@ -236,11 +256,14 @@ function App() {
 
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-zinc-800 text-white px-5 py-3 rounded-2xl">
-                Thinking...
+              <div className="bg-zinc-800 px-5 py-4 rounded-2xl flex gap-2">
+                <span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>
+                <span className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                <span className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:0.4s]"></span>
               </div>
             </div>
           )}
+          <div ref={messagesEndRef}></div>
         </div>
 
         {/* Input Section */}
