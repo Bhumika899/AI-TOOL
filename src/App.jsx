@@ -1,7 +1,11 @@
-import { useState, useEffect, useRef, useId } from "react";
+import Answer from "./components/Answers";
+import { useState, useEffect, useRef } from "react";
 import "./App.css";
 import { URL } from "./assets/constants";
-import Answer from "./components/Answers";
+
+import Sidebar from "./components/Sidebar";
+import ChatArea from "./components/ChatArea";
+import ChatInput from "./components/ChatInput";
 
 function App() {
   const [question, setQuestion] = useState("");
@@ -9,13 +13,16 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [recentHistory, setRecentHistory] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+
   const messagesEndRef = useRef(null);
+  const [selectedChatId, setSelectedChatId] =
+    useState(null);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth",
     });
   }, [messages, loading]);
-
 
   useEffect(() => {
     try {
@@ -28,10 +35,30 @@ function App() {
     }
   }, []);
 
-  // Delete a particular history item
-  const deleteHistory = (indexToDelete) => {
+
+
+  const clearHistory = () => {
+    localStorage.removeItem("history");
+    setRecentHistory([]);
+  };
+
+  const openChat = (chat) => {
+    setSelectedChatId(chat.id);
+
+    setMessages([
+      {
+        type: "question",
+        text: chat.question,
+      },
+      {
+        type: "answer",
+        text: chat.answer,
+      },
+    ]);
+  };
+  const deleteHistory = (id) => {
     const updatedHistory = recentHistory.filter(
-      (_, index) => index !== indexToDelete
+      (chat) => chat.id !== id
     );
 
     setRecentHistory(updatedHistory);
@@ -40,6 +67,11 @@ function App() {
       "history",
       JSON.stringify(updatedHistory)
     );
+
+    if (selectedChatId === id) {
+      setMessages([]);
+      setSelectedChatId(null);
+    }
   };
 
   const askQuestion = async () => {
@@ -47,37 +79,6 @@ function App() {
 
     const userQuestion = question;
 
-    // Get existing history
-    let history = [];
-
-    try {
-      const storedHistory = localStorage.getItem("history");
-
-      history = storedHistory
-        ? JSON.parse(storedHistory)
-        : [];
-
-      if (!Array.isArray(history)) {
-        history = [];
-      }
-    } catch {
-      history = [];
-    }
-
-    // Add latest question to history
-    const updatedHistory = [
-      userQuestion,
-      ...history,
-    ].slice(0, 20);
-
-    localStorage.setItem(
-      "history",
-      JSON.stringify(updatedHistory)
-    );
-
-    setRecentHistory(updatedHistory);
-
-    // Show question in chat
     setMessages((prev) => [
       ...prev,
       {
@@ -94,7 +95,8 @@ function App() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
+          Authorization: `Bearer ${import.meta.env.VITE_GROQ_API_KEY
+            }`,
         },
         body: JSON.stringify({
           model: "llama-3.1-8b-instant",
@@ -133,6 +135,27 @@ function App() {
           text: answer,
         },
       ]);
+
+      const chat = {
+        id: Date.now(),
+        question: userQuestion,
+        answer,
+      };
+
+      const storedHistory =
+        JSON.parse(localStorage.getItem("history")) || [];
+
+      const updatedHistory = [
+        chat,
+        ...storedHistory,
+      ].slice(0, 20);
+
+      localStorage.setItem(
+        "history",
+        JSON.stringify(updatedHistory)
+      );
+
+      setRecentHistory(updatedHistory);
     } catch (error) {
       console.error(error);
 
@@ -154,141 +177,38 @@ function App() {
     }
   };
 
-  const clearHistory = () => {
-    localStorage.removeItem("history");
-    setRecentHistory([]);
-  };
   const filteredHistory = recentHistory.filter((item) =>
-    item.toLowerCase().includes(searchTerm.toLowerCase())
+    item.question
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="grid grid-cols-5 h-screen bg-zinc-900">
-      {/* Sidebar */}
-      <div className="col-span-1 bg-zinc-800 p-4 overflow-y-auto">
-        <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-          Recent Chats
-        </h2>
-        <input
-          type="text"
-          placeholder="Search chats..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-2 mb-4 rounded bg-zinc-700 text-white outline-none"
-        />
-        {filteredHistory.length > 0 ? (
-          filteredHistory.map((item, index) => (
-            <div
-              key={index}
-              className="flex justify-between items-center p-2 mb-2 rounded hover:bg-zinc-700"
-            >
-              <span className="text-zinc-300 truncate flex-1">
-                {item}
-              </span>
+      <Sidebar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        filteredHistory={filteredHistory}
+        openChat={openChat}
+        deleteHistory={deleteHistory}
+        clearHistory={clearHistory}
+        recentHistory={recentHistory}
+      />
 
-              <button
-                onClick={() =>
-                  deleteHistory(recentHistory.indexOf(item))
-                }
-                className="text-red-400 hover:text-red-600 ml-2"
-              >
-                ✕
-              </button>
-            </div>
-          ))
-        ) : (
-          <p className="text-zinc-400">
-            {searchTerm
-              ? "No matching chats found."
-              : "No chat history found."}
-          </p>
-        )}
-
-        {recentHistory.length > 0 && (
-          <button
-            onClick={clearHistory}
-            className="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-          >
-            Clear History
-          </button>
-        )}
-      </div>
-
-      {/* Main Content */}
       <div className="col-span-4 flex flex-col">
-        {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <ChatArea
+          messages={messages}
+          loading={loading}
+          messagesEndRef={messagesEndRef}
+        />
 
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full">
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                React AI
-              </h1>
-
-              <p className="text-zinc-400 mt-4">
-                Ask anything and get instant answers
-              </p>
-            </div>
-          )}
-
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex mb-4 ${msg.type === "question"
-                ? "justify-end"
-                : "justify-start"
-                }`}
-            >
-              <div
-                className={`max-w-[75%] px-5 py-3 rounded-2xl ${msg.type === "question"
-                  ? "bg-blue-600 text-white"
-                  : "bg-zinc-800 text-white"
-                  }`}
-              >
-                {msg.type === "answer" ? (
-                  <Answer ans={msg.text} />
-                ) : (
-                  <p>{msg.text}</p>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {loading && (
-            <div className="flex justify-start">
-              <div className="bg-zinc-800 px-5 py-4 rounded-2xl flex gap-2">
-                <span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>
-                <span className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                <span className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:0.4s]"></span>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef}></div>
-        </div>
-
-        {/* Input Section */}
-        <div className="p-6">
-          <div className="bg-zinc-800 border border-zinc-700 rounded-3xl flex items-center px-4 py-2 w-3/4 mx-auto">
-            <input
-              type="text"
-              value={question}
-              onChange={(e) =>
-                setQuestion(e.target.value)
-              }
-              onKeyDown={handleKeyDown}
-              placeholder="Ask me anything..."
-              className="flex-1 bg-transparent text-white outline-none p-3"
-            />
-
-            <button
-              onClick={askQuestion}
-              disabled={loading}
-              className="text-white px-4 py-2"
-            >
-              {loading ? "..." : "Ask"}
-            </button>
-          </div>
-        </div>
+        <ChatInput
+          question={question}
+          setQuestion={setQuestion}
+          askQuestion={askQuestion}
+          handleKeyDown={handleKeyDown}
+          loading={loading}
+        />
       </div>
     </div>
   );

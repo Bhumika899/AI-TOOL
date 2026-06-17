@@ -1,0 +1,65 @@
+function Sidebar({
+    searchTerm,
+    setSearchTerm,
+    filteredHistory,
+    openChat,
+    deleteHistory,
+    clearHistory,
+    recentHistory,
+}) {
+    return (
+        <div className="col-span-1 bg-zinc-800 p-4 overflow-y-auto">
+            <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Recent Chats
+            </h2>
+
+            <input
+                type="text"
+                placeholder="Search chats..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full p-2 mb-4 rounded bg-zinc-700 text-white outline-none"
+            />
+
+            {filteredHistory.length > 0 ? (
+                filteredHistory.map((item) => (
+                    <div
+                        key={item.id}
+                        className="flex justify-between items-center p-2 mb-2 rounded hover:bg-zinc-700"
+                    >
+                        <span
+                            onClick={() => openChat(item)}
+                            className="text-zinc-300 truncate flex-1 cursor-pointer"
+                        >
+                            {item.question}
+                        </span>
+
+                        <button
+                            onClick={() => deleteHistory(item.id)}
+                            className="text-red-400 hover:text-red-600 ml-2"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                ))
+            ) : (
+                <p className="text-zinc-400">
+                    {searchTerm
+                        ? "No matching chats found."
+                        : "No chat history found."}
+                </p>
+            )}
+
+            {recentHistory.length > 0 && (
+                <button
+                    onClick={clearHistory}
+                    className="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+                >
+                    Clear History
+                </button>
+            )}
+        </div>
+    );
+}
+
+export default Sidebar;
