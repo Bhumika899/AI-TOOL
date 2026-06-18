@@ -142,26 +142,40 @@ function App() {
         },
       ]);
 
-      const chat = {
-        id: Date.now(),
-        question: userQuestion,
-        answer,
-      };
-
       const storedHistory =
         JSON.parse(localStorage.getItem("history")) || [];
 
-      const updatedHistory = [
-        chat,
+      const newChat = {
+        id: Date.now(),
+        question: userQuestion
+          .trim()
+          .replace(/\s+/g, " "),
+        answer,
+      };
+
+      const combined = [
+        newChat,
         ...storedHistory,
+      ];
+
+      const uniqueHistory = [
+        ...new Map(
+          combined.map((item) => [
+            item.question
+              .trim()
+              .replace(/\s+/g, " ")
+              .toLowerCase(),
+            item,
+          ])
+        ).values(),
       ].slice(0, 20);
 
       localStorage.setItem(
         "history",
-        JSON.stringify(updatedHistory)
+        JSON.stringify(uniqueHistory)
       );
 
-      setRecentHistory(updatedHistory);
+      setRecentHistory(uniqueHistory);
     } catch (error) {
       console.error(error);
 
