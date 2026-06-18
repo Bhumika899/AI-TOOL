@@ -17,6 +17,12 @@ function App() {
   const messagesEndRef = useRef(null);
   const [selectedChatId, setSelectedChatId] =
     useState(null);
+  const [theme, setTheme] = useState(
+    localStorage.getItem("theme") || "dark"
+  );
+  useEffect(() => {
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
@@ -104,7 +110,7 @@ function App() {
             {
               role: "system",
               content:
-                "Respond in Markdown using headings, bullet points and formatting.",
+                "Respond in proper Markdown. For code use fenced code blocks with language names like ```javascript, ```cpp, ```python. Use headings, lists and formatting.",
             },
             {
               role: "user",
@@ -184,8 +190,15 @@ function App() {
   );
 
   return (
-    <div className="grid grid-cols-5 h-screen bg-zinc-900">
+    <div
+      className={`grid grid-cols-5 h-screen ${theme === "dark"
+        ? "bg-zinc-900 text-white"
+        : "bg-gray-100 text-black"
+        }`}
+    >
       <Sidebar
+        theme={theme}
+        setTheme={setTheme}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         filteredHistory={filteredHistory}
@@ -195,14 +208,23 @@ function App() {
         recentHistory={recentHistory}
       />
 
-      <div className="col-span-4 flex flex-col">
+
+      <div
+        className={`col-span-4 flex flex-col ${theme === "dark"
+          ? "bg-zinc-900"
+          : "bg-gray-100"
+          }`}
+      >
+
         <ChatArea
+          theme={theme}
           messages={messages}
           loading={loading}
           messagesEndRef={messagesEndRef}
         />
 
         <ChatInput
+          theme={theme}
           question={question}
           setQuestion={setQuestion}
           askQuestion={askQuestion}

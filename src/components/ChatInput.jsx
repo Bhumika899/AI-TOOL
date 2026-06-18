@@ -1,5 +1,6 @@
 function ChatInput({
     question,
+    theme,
     setQuestion,
     askQuestion,
     handleKeyDown,
@@ -7,7 +8,10 @@ function ChatInput({
 }) {
     return (
         <div className="p-6">
-            <div className="bg-zinc-800 border border-zinc-700 rounded-3xl flex items-center px-4 py-2 w-3/4 mx-auto">
+            <div className={`border rounded-3xl flex items-center px-4 py-2 w-3/4 mx-auto ${theme === "dark"
+                ? "bg-zinc-800 border-zinc-700"
+                : "bg-white border-gray-300 shadow-md"
+                }`}>
                 <input
                     type="text"
                     value={question}
@@ -16,13 +20,19 @@ function ChatInput({
                     }
                     onKeyDown={handleKeyDown}
                     placeholder="Ask me anything..."
-                    className="flex-1 bg-transparent text-white outline-none p-3"
+                    className={`flex-1 bg-transparent outline-none p-3 ${theme === "dark"
+                        ? "text-white placeholder:text-zinc-400"
+                        : "text-black placeholder:text-gray-500"
+                        }`}
                 />
 
                 <button
                     onClick={askQuestion}
                     disabled={loading}
-                    className="text-white px-4 py-2"
+                    className={`px-4 py-2 rounded-lg ${theme === "dark"
+                            ? "text-white hover:bg-zinc-700"
+                            : "text-black hover:bg-gray-200"
+                        }`}
                 >
                     {loading ? "..." : "Ask"}
                 </button>

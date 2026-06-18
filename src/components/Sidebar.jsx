@@ -1,4 +1,6 @@
 function Sidebar({
+    theme,
+    setTheme,
     searchTerm,
     setSearchTerm,
     filteredHistory,
@@ -8,17 +10,36 @@ function Sidebar({
     recentHistory,
 }) {
     return (
-        <div className="col-span-1 bg-zinc-800 p-4 overflow-y-auto">
+        <div className={`col-span-1 p-4 overflow-y-auto ${theme === "dark"
+            ? "bg-zinc-800"
+            : "bg-white border-r"
+            }`}>
             <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                 Recent Chats
             </h2>
+            <div className="mb-4">
+                <select
+                    value={theme}
+                    onChange={(e) => setTheme(e.target.value)}
+                    className={`w-full p-2 rounded border ${theme === "dark"
+                            ? "bg-zinc-700 text-white border-zinc-600"
+                            : "bg-white text-black border-gray-300"
+                        }`}
+                >
+                    <option value="dark">🌙 Dark Mode</option>
+                    <option value="light">☀️ Light Mode</option>
+                </select>
+            </div>
 
             <input
                 type="text"
                 placeholder="Search chats..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full p-2 mb-4 rounded bg-zinc-700 text-white outline-none"
+                className={`w-full p-2 mb-4 rounded outline-none ${theme === "dark"
+                    ? "bg-zinc-700 text-white"
+                    : "bg-gray-100 text-black border"
+                    }`}
             />
 
             {filteredHistory.length > 0 ? (
@@ -29,7 +50,10 @@ function Sidebar({
                     >
                         <span
                             onClick={() => openChat(item)}
-                            className="text-zinc-300 truncate flex-1 cursor-pointer"
+                            className={`truncate flex-1 cursor-pointer ${theme === "dark"
+                                ? "text-zinc-300"
+                                : "text-black"
+                                }`}
                         >
                             {item.question}
                         </span>
@@ -43,7 +67,12 @@ function Sidebar({
                     </div>
                 ))
             ) : (
-                <p className="text-zinc-400">
+                <p
+                    className={`${theme === "dark"
+                        ? "text-zinc-400"
+                        : "text-gray-600"
+                        }`}
+                >
                     {searchTerm
                         ? "No matching chats found."
                         : "No chat history found."}

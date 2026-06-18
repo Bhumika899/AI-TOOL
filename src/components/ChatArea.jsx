@@ -1,6 +1,7 @@
 import Answer from "./Answers";
 
 function ChatArea({
+    theme,
     messages,
     loading,
     messagesEndRef,
@@ -23,18 +24,23 @@ function ChatArea({
                 <div
                     key={index}
                     className={`flex mb-4 ${msg.type === "question"
-                            ? "justify-end"
-                            : "justify-start"
+                        ? "justify-end"
+                        : "justify-start"
                         }`}
                 >
                     <div
                         className={`max-w-[75%] px-5 py-3 rounded-2xl ${msg.type === "question"
-                                ? "bg-blue-600 text-white"
-                                : "bg-zinc-800 text-white"
+                            ? "bg-blue-600 text-white"
+                            : theme === "dark"
+                                ? "bg-zinc-800 text-white"
+                                : "bg-white text-black border border-gray-300 shadow-sm"
                             }`}
                     >
                         {msg.type === "answer" ? (
-                            <Answer ans={msg.text} />
+                            <Answer
+                                ans={msg.text}
+                                theme={theme}
+                            />
                         ) : (
                             <p>{msg.text}</p>
                         )}
@@ -44,7 +50,12 @@ function ChatArea({
 
             {loading && (
                 <div className="flex justify-start">
-                    <div className="bg-zinc-800 px-5 py-4 rounded-2xl flex gap-2">
+                    <div
+                        className={`px-5 py-4 rounded-2xl flex gap-2 ${theme === "dark"
+                            ? "bg-zinc-800"
+                            : "bg-white border border-gray-300"
+                            }`}
+                    >
                         <span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>
                         <span className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:0.2s]"></span>
                         <span className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:0.4s]"></span>
