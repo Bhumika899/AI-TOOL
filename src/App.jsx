@@ -46,21 +46,13 @@ function App() {
   const clearHistory = () => {
     localStorage.removeItem("history");
     setRecentHistory([]);
+    setMessages([]);
+    setSelectedChatId(null);
   };
 
   const openChat = (chat) => {
     setSelectedChatId(chat.id);
-
-    setMessages([
-      {
-        type: "question",
-        text: chat.question,
-      },
-      {
-        type: "answer",
-        text: chat.answer,
-      },
-    ]);
+    setMessages(chat.messages);
   };
   const deleteHistory = (id) => {
     const updatedHistory = recentHistory.filter(
@@ -74,12 +66,12 @@ function App() {
       JSON.stringify(updatedHistory)
     );
 
+    // If currently opened chat is deleted
     if (selectedChatId === id) {
       setMessages([]);
       setSelectedChatId(null);
     }
   };
-
   const askQuestion = async () => {
     if (!question.trim() || loading) return;
 
@@ -97,6 +89,15 @@ function App() {
     setLoading(true);
 
     try {
+      const conversationHistory = messages.map(
+        (msg) => ({
+          role:
+            msg.type === "question"
+              ? "user"
+              : "assistant",
+          content: msg.text,
+        })
+      );
       const response = await fetch(URL, {
         method: "POST",
         headers: {
@@ -106,12 +107,14 @@ function App() {
         },
         body: JSON.stringify({
           model: "llama-3.1-8b-instant",
+
           messages: [
             {
               role: "system",
               content:
-                "Respond in proper Markdown. For code use fenced code blocks with language names like ```javascript, ```cpp, ```python. Use headings, lists and formatting.",
+                "Respond in proper Markdown."
             },
+            ...conversationHistory,
             {
               role: "user",
               content: userQuestion,
@@ -142,40 +145,77 @@ function App() {
         },
       ]);
 
-      const storedHistory =
-        JSON.parse(localStorage.getItem("history")) || [];
+      const newChatItem = {
+        id:
+          selectedChatId || Date.now(),
 
-      const newChat = {
-        id: Date.now(),
-        question: userQuestion
-          .trim()
-          .replace(/\s+/g, " "),
-        answer,
+        title:
+          selectedChatId
+            ? recentHistory.find(
+              (c) =>
+                c.id === selectedChatId
+            )?.title
+            : userQuestion,
+
+        messages: [
+          ...messages,
+          {
+            type: "question",
+            text: userQuestion,
+          },
+          {
+            type: "answer",
+            text: answer,
+          },
+        ],
       };
 
-      const combined = [
-        newChat,
-        ...storedHistory,
-      ];
+      let updatedHistory;
 
-      const uniqueHistory = [
-        ...new Map(
-          combined.map((item) => [
-            item.question
-              .trim()
-              .replace(/\s+/g, " ")
-              .toLowerCase(),
-            item,
-          ])
-        ).values(),
-      ].slice(0, 20);
+      if (selectedChatId) {
+        updatedHistory = recentHistory.map(
+          (chat) =>
+            chat.id === selectedChatId
+              ? newChatItem
+              : chat
+        );
+      } else {
+        updatedHistory = [
+          newChatItem,
+          ...recentHistory,
+        ];
+      }
 
       localStorage.setItem(
         "history",
-        JSON.stringify(uniqueHistory)
+        JSON.stringify(updatedHistory)
       );
 
-      setRecentHistory(uniqueHistory);
+      setRecentHistory(updatedHistory);
+
+      setSelectedChatId(
+        newChatItem.id
+      );
+
+
+      // const uniqueHistory = [
+      //   ...new Map(
+      //     combined.map((item) => [
+      //       item.question
+      //         .trim()
+      //         .replace(/\s+/g, " ")
+      //         .toLowerCase(),
+      //       item,
+      //     ])
+      //   ).values(),
+      // ].slice(0, 20);
+
+      // localStorage.setItem(
+      //   "history",
+      //   JSON.stringify(uniqueHistory)
+      // );
+
+      // setRecentHistory(uniqueHistory);
     } catch (error) {
       console.error(error);
 
@@ -197,11 +237,16 @@ function App() {
     }
   };
 
-  const filteredHistory = recentHistory.filter((item) =>
-    item.question
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
+  const filteredHistory = recentHistory.filter(
+    (item) =>
+      (item.title || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
   );
+  const newChat = () => {
+    setMessages([]);
+    setSelectedChatId(null);
+  };
 
   return (
     <div
@@ -211,6 +256,7 @@ function App() {
         }`}
     >
       <Sidebar
+        newChat={newChat}
         theme={theme}
         setTheme={setTheme}
         searchTerm={searchTerm}

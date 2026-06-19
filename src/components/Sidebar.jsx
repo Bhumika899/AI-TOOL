@@ -1,4 +1,5 @@
 function Sidebar({
+    newChat,
     theme,
     setTheme,
     searchTerm,
@@ -14,6 +15,12 @@ function Sidebar({
             ? "bg-zinc-800"
             : "bg-white border-r"
             }`}>
+            <button
+                onClick={newChat}
+                className="w-full mb-4 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded"
+            >
+                + New Chat
+            </button>
             <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                 Recent Chats
             </h2>
@@ -22,8 +29,8 @@ function Sidebar({
                     value={theme}
                     onChange={(e) => setTheme(e.target.value)}
                     className={`w-full p-2 rounded border ${theme === "dark"
-                            ? "bg-zinc-700 text-white border-zinc-600"
-                            : "bg-white text-black border-gray-300"
+                        ? "bg-zinc-700 text-white border-zinc-600"
+                        : "bg-white text-black border-gray-300"
                         }`}
                 >
                     <option value="dark">🌙 Dark Mode</option>
@@ -55,7 +62,7 @@ function Sidebar({
                                 : "text-black"
                                 }`}
                         >
-                            {item.question}
+                            {item.title}
                         </span>
 
                         <button
