@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Answer from "./Answers";
 
 function ChatArea({
@@ -6,6 +7,7 @@ function ChatArea({
     loading,
     messagesEndRef,
 }) {
+    const [copiedIndex, setCopiedIndex] = useState(null);
     return (
         <div className="flex-1 overflow-y-auto p-6">
             {messages.length === 0 && (
@@ -37,10 +39,31 @@ function ChatArea({
                             }`}
                     >
                         {msg.type === "answer" ? (
-                            <Answer
-                                ans={msg.text}
-                                theme={theme}
-                            />
+                            <div>
+                                <Answer
+                                    ans={msg.text}
+                                    theme={theme}
+                                />
+
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(msg.text);
+                                        setCopiedIndex(index);
+
+                                        setTimeout(() => {
+                                            setCopiedIndex(null);
+                                        }, 2000);
+                                    }}
+                                    className={`mt-2 px-2 py-1 rounded text-sm ${copiedIndex === index
+                                        ? "bg-green-500 text-white"
+                                        : "bg-blue-500 text-white"
+                                        }`}
+                                >
+                                    {copiedIndex === index
+                                        ? "✓ Copied"
+                                        : "📋 Copy"}
+                                </button>
+                            </div>
                         ) : (
                             <p>{msg.text}</p>
                         )}

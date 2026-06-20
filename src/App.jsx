@@ -72,6 +72,20 @@ function App() {
       setSelectedChatId(null);
     }
   };
+  const togglePin = (id) => {
+    const updatedHistory = recentHistory.map((item) =>
+      item.id === id
+        ? { ...item, pinned: !item.pinned }
+        : item
+    );
+
+    setRecentHistory(updatedHistory);
+
+    localStorage.setItem(
+      "history",
+      JSON.stringify(updatedHistory)
+    );
+  };
   const askQuestion = async () => {
     if (!question.trim() || loading) return;
 
@@ -156,6 +170,8 @@ function App() {
                 c.id === selectedChatId
             )?.title
             : userQuestion,
+
+        pinned: false,
 
         messages: [
           ...messages,
@@ -247,6 +263,24 @@ function App() {
     setMessages([]);
     setSelectedChatId(null);
   };
+  const renameChat = (id, newTitle) => {
+    const updatedHistory =
+      recentHistory.map((chat) =>
+        chat.id === id
+          ? {
+            ...chat,
+            title: newTitle,
+          }
+          : chat
+      );
+
+    setRecentHistory(updatedHistory);
+
+    localStorage.setItem(
+      "history",
+      JSON.stringify(updatedHistory)
+    );
+  };
 
   return (
     <div
@@ -256,6 +290,8 @@ function App() {
         }`}
     >
       <Sidebar
+        togglePin={togglePin}
+        renameChat={renameChat}
         newChat={newChat}
         theme={theme}
         setTheme={setTheme}

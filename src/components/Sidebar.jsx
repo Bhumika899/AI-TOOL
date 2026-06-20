@@ -1,6 +1,8 @@
 function Sidebar({
+    togglePin,
     newChat,
     theme,
+    renameChat,
     setTheme,
     searchTerm,
     setSearchTerm,
@@ -64,6 +66,32 @@ function Sidebar({
                         >
                             {item.title}
                         </span>
+
+                        <button
+                            onClick={() => {
+                                const newTitle = prompt(
+                                    "Rename Chat",
+                                    item.title
+                                );
+
+                                if (newTitle) {
+                                    renameChat(
+                                        item.id,
+                                        newTitle
+                                    );
+                                }
+                            }}
+                            className="text-blue-400 hover:text-blue-600 ml-2"
+                        >
+                            ✏️
+                        </button>
+                        <button
+                            onClick={() =>
+                                togglePin(item.id)
+                            }
+                        >
+                            📌
+                        </button>
 
                         <button
                             onClick={() => deleteHistory(item.id)}
