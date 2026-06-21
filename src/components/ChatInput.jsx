@@ -1,11 +1,49 @@
+import { useState } from "react";
+
+// import SpeechRecognition, {
+//     useSpeechRecognition,
+// } from "react-speech-recognition";
 function ChatInput({
     question,
+    mode,
+    handlePdfUpload,
     theme,
+    setMode,
     setQuestion,
     askQuestion,
     handleKeyDown,
     loading,
+    shareChat,
 }) {
+    const [listening, setListening] =
+        useState(false);
+    const startListening = () => {
+        const SpeechRecognition =
+            window.SpeechRecognition ||
+            window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            alert("Speech Recognition not supported");
+            return;
+        }
+
+        const recognition =
+            new SpeechRecognition();
+
+        recognition.start();
+
+        setListening(true);
+
+        recognition.onresult = (event) => {
+            setQuestion(
+                event.results[0][0].transcript
+            );
+        };
+
+        recognition.onend = () => {
+            setListening(false);
+        };
+    };
     return (
         <div className="p-6">
             <div className={`border rounded-3xl flex items-center px-4 py-2 w-3/4 mx-auto ${theme === "dark"
@@ -15,9 +53,7 @@ function ChatInput({
                 <input
                     type="text"
                     value={question}
-                    onChange={(e) =>
-                        setQuestion(e.target.value)
-                    }
+                    onChange={(e) => setQuestion(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Ask me anything..."
                     className={`flex-1 bg-transparent outline-none p-3 ${theme === "dark"
@@ -26,18 +62,60 @@ function ChatInput({
                         }`}
                 />
 
-                <button
-                    onClick={askQuestion}
-                    disabled={loading}
-                    className={`px-4 py-2 rounded-lg ${theme === "dark"
-                            ? "text-white hover:bg-zinc-700"
-                            : "text-black hover:bg-gray-200"
+                <select
+                    value={mode}
+                    onChange={(e) => setMode(e.target.value)}
+                    className={`mx-2 p-2 rounded ${theme === "dark"
+                        ? "bg-zinc-700 text-white"
+                        : "bg-gray-200 text-black"
                         }`}
                 >
-                    {loading ? "..." : "Ask"}
-                </button>
+                    <option value="chat">💬 Chat Mode</option>
+                    <option value="image">🖼️ Image Generator</option>
+                </select>
+                <div className="flex gap-2">
+
+                    <input
+                        type="file"
+                        accept=".pdf"
+                        onChange={handlePdfUpload}
+                        id="pdf-upload"
+                        className="hidden"
+                    />
+
+                    <label
+                        htmlFor="pdf-upload"
+                        className={`px-3 py-2 rounded cursor-pointer ${theme === "dark"
+                            ? "bg-zinc-700 text-white"
+                            : "bg-gray-200 text-black"
+                            }`}
+                    >
+                        📄
+                    </label>
+
+                    <button
+                        onClick={startListening}
+                        className={`px-3 py-2 rounded ${theme === "dark"
+                            ? "bg-zinc-700 text-white"
+                            : "bg-gray-200 text-black"
+                            }`}
+                    >
+                        {listening ? "🎙️" : "🎤"}
+                    </button>
+
+
+                    <button
+                        onClick={askQuestion}
+                        disabled={loading}
+                        className="bg-blue-600 text-white px-4 py-2 rounded"
+                    >
+                        {loading ? "..." : "Ask"}
+                    </button>
+
+
+                </div>
             </div>
-        </div>
+        </div >
     );
 }
 

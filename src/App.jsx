@@ -2,12 +2,18 @@ import Answer from "./components/Answers";
 import { useState, useEffect, useRef } from "react";
 import "./App.css";
 import { URL } from "./assets/constants";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker?url";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 import Sidebar from "./components/Sidebar";
 import ChatArea from "./components/ChatArea";
 import ChatInput from "./components/ChatInput";
 
 function App() {
+  const [mode, setMode] = useState("chat");
+  const [pdfContent, setPdfContent] = useState("");
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -41,7 +47,8 @@ function App() {
     }
   }, []);
 
-
+  const [generatedImage, setGeneratedImage] =
+    useState("");
 
   const clearHistory = () => {
     localStorage.removeItem("history");
@@ -86,6 +93,7 @@ function App() {
       JSON.stringify(updatedHistory)
     );
   };
+
   const askQuestion = async () => {
     if (!question.trim() || loading) return;
 
@@ -103,6 +111,39 @@ function App() {
     setLoading(true);
 
     try {
+      // IMAGE GENERATION
+      if (
+        userQuestion
+          .toLowerCase()
+          .startsWith("generate image")
+      ) {
+        const prompt = userQuestion.replace(
+          "generate image",
+          ""
+        );
+
+        const imageUrl =
+          `https://image.pollinations.ai/prompt/${encodeURIComponent(
+            prompt.trim()
+
+          )
+
+          } `;
+
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "image",
+            text: imageUrl,
+          },
+        ]);
+
+        setLoading(false);
+        return;
+      }
+
+      // CHAT HISTORY
       const conversationHistory = messages.map(
         (msg) => ({
           role:
@@ -112,21 +153,30 @@ function App() {
           content: msg.text,
         })
       );
+
       const response = await fetch(URL, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_GROQ_API_KEY
-            }`,
+          "Content-Type":
+            "application/json",
+          Authorization: `Bearer ${import.meta.env
+            .VITE_GROQ_API_KEY
+            } `,
         },
         body: JSON.stringify({
           model: "llama-3.1-8b-instant",
-
           messages: [
             {
               role: "system",
-              content:
-                "Respond in proper Markdown."
+              content: pdfContent
+                ? `You are a PDF assistant. Answer ONLY using the uploaded PDF content below.
+
+PDF CONTENT:
+${pdfContent}
+
+If the answer is not present in the PDF, say:
+"I couldn't find that information in the uploaded PDF."`
+                : "Respond in proper Markdown.",
             },
             ...conversationHistory,
             {
@@ -143,12 +193,14 @@ function App() {
 
       if (!response.ok) {
         throw new Error(
-          data?.error?.message || "Request failed"
+          data?.error?.message ||
+          "Request failed"
         );
       }
 
       const answer =
-        data?.choices?.[0]?.message?.content ||
+        data?.choices?.[0]?.message
+          ?.content ||
         "No response received.";
 
       setMessages((prev) => [
@@ -158,21 +210,24 @@ function App() {
           text: answer,
         },
       ]);
+    } catch (error) {
+      console.error(error);
 
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "answer",
+          text: "Something went wrong.",
+        },
+      ]);
       const newChatItem = {
-        id:
-          selectedChatId || Date.now(),
-
-        title:
-          selectedChatId
-            ? recentHistory.find(
-              (c) =>
-                c.id === selectedChatId
-            )?.title
-            : userQuestion,
-
+        id: selectedChatId || Date.now(),
+        title: selectedChatId
+          ? recentHistory.find(
+            (c) => c.id === selectedChatId
+          )?.title
+          : userQuestion,
         pinned: false,
-
         messages: [
           ...messages,
           {
@@ -208,44 +263,14 @@ function App() {
       );
 
       setRecentHistory(updatedHistory);
-
-      setSelectedChatId(
-        newChatItem.id
-      );
-
-
-      // const uniqueHistory = [
-      //   ...new Map(
-      //     combined.map((item) => [
-      //       item.question
-      //         .trim()
-      //         .replace(/\s+/g, " ")
-      //         .toLowerCase(),
-      //       item,
-      //     ])
-      //   ).values(),
-      // ].slice(0, 20);
-
-      // localStorage.setItem(
-      //   "history",
-      //   JSON.stringify(uniqueHistory)
-      // );
-
-      // setRecentHistory(uniqueHistory);
-    } catch (error) {
-      console.error(error);
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          type: "answer",
-          text: "Something went wrong.",
-        },
-      ]);
+      setSelectedChatId(newChatItem.id);
     } finally {
       setLoading(false);
     }
   };
+
+
+
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -281,13 +306,74 @@ function App() {
       JSON.stringify(updatedHistory)
     );
   };
+  const shareChat = async () => {
+    if (messages.length === 0) {
+      alert("No chat to share");
+      return;
+    }
+
+    const chatText = messages
+      .map(
+        (msg) =>
+          `${msg.type === "question" ? "You" : "AI"}: ${msg.text}`
+      )
+      .join("\n\n");
+
+    try {
+      await navigator.clipboard.writeText(chatText);
+      alert("Chat copied!");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const handlePdfUpload = async (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = async () => {
+      try {
+        const typedArray = new Uint8Array(
+          reader.result
+        );
+
+        const pdf = await pdfjsLib.getDocument({
+          data: typedArray,
+        }).promise;
+
+        let text = "";
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+
+          const content =
+            await page.getTextContent();
+
+          text += content.items
+            .map((item) => item.str)
+            .join(" ");
+        }
+
+        console.log("PDF loaded");
+        console.log(text.substring(0, 500));
+
+        setPdfContent(text);
+      } catch (err) {
+        console.error("PDF Error:", err);
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+  };
 
   return (
     <div
       className={`grid grid-cols-5 h-screen ${theme === "dark"
         ? "bg-zinc-900 text-white"
         : "bg-gray-100 text-black"
-        }`}
+        } `}
     >
       <Sidebar
         togglePin={togglePin}
@@ -309,10 +395,11 @@ function App() {
         className={`col-span-4 flex flex-col ${theme === "dark"
           ? "bg-zinc-900"
           : "bg-gray-100"
-          }`}
+          } `}
       >
 
         <ChatArea
+          shareChat={shareChat}
           theme={theme}
           messages={messages}
           loading={loading}
@@ -320,6 +407,9 @@ function App() {
         />
 
         <ChatInput
+          mode={mode}
+          handlePdfUpload={handlePdfUpload}
+          setMode={setMode}
           theme={theme}
           question={question}
           setQuestion={setQuestion}
@@ -329,7 +419,11 @@ function App() {
         />
       </div>
     </div>
-  );
-}
+  )
+};
+
+
+
+
 
 export default App;

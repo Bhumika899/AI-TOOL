@@ -6,8 +6,9 @@ function ChatArea({
     messages,
     loading,
     messagesEndRef,
+    shareChat,
 }) {
-    const [copiedIndex, setCopiedIndex] = useState(null);
+    // const [copiedIndex, setCopiedIndex] = useState(null);
     return (
         <div className="flex-1 overflow-y-auto p-6">
             {messages.length === 0 && (
@@ -44,25 +45,29 @@ function ChatArea({
                                     ans={msg.text}
                                     theme={theme}
                                 />
-
                                 <button
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(msg.text);
-                                        setCopiedIndex(index);
-
-                                        setTimeout(() => {
-                                            setCopiedIndex(null);
-                                        }, 2000);
-                                    }}
-                                    className={`mt-2 px-2 py-1 rounded text-sm ${copiedIndex === index
-                                        ? "bg-green-500 text-white"
-                                        : "bg-blue-500 text-white"
-                                        }`}
+                                    onClick={shareChat}
+                                    className="text-gray-400 text-sm mt-2"
                                 >
-                                    {copiedIndex === index
-                                        ? "✓ Copied"
-                                        : "📋 Copy"}
+                                    🔗 Share
                                 </button>
+                            </div>
+                        ) : msg.type === "image" ? (
+                            <div>
+                                <img
+                                    src={msg.text}
+                                    alt="generated"
+                                    className="rounded-lg max-w-full"
+                                />
+
+                                <a
+                                    href={msg.text}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block mt-2 bg-blue-600 text-white px-3 py-1 rounded text-center"
+                                >
+                                    📥 Download Image
+                                </a>
                             </div>
                         ) : (
                             <p>{msg.text}</p>
