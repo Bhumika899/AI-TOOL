@@ -6,7 +6,7 @@ import { useState } from "react";
 function ChatInput({
     question,
     mode,
-    handlePdfUpload,
+
     theme,
     setMode,
     setQuestion,
@@ -74,25 +74,6 @@ function ChatInput({
                     <option value="image">🖼️ Image Generator</option>
                 </select>
                 <div className="flex gap-2">
-
-                    <input
-                        type="file"
-                        accept=".pdf"
-                        onChange={handlePdfUpload}
-                        id="pdf-upload"
-                        className="hidden"
-                    />
-
-                    <label
-                        htmlFor="pdf-upload"
-                        className={`px-3 py-2 rounded cursor-pointer ${theme === "dark"
-                            ? "bg-zinc-700 text-white"
-                            : "bg-gray-200 text-black"
-                            }`}
-                    >
-                        📄
-                    </label>
-
                     <button
                         onClick={startListening}
                         className={`px-3 py-2 rounded ${theme === "dark"

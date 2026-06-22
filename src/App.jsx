@@ -2,10 +2,7 @@ import Answer from "./components/Answers";
 import { useState, useEffect, useRef } from "react";
 import "./App.css";
 import { URL } from "./assets/constants";
-import * as pdfjsLib from "pdfjs-dist";
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 import Sidebar from "./components/Sidebar";
 import ChatArea from "./components/ChatArea";
@@ -13,7 +10,7 @@ import ChatInput from "./components/ChatInput";
 
 function App() {
   const [mode, setMode] = useState("chat");
-  const [pdfContent, setPdfContent] = useState("");
+
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -85,7 +82,7 @@ function App() {
         ? { ...item, pinned: !item.pinned }
         : item
     );
-
+    console.log(updatedHistory);
     setRecentHistory(updatedHistory);
 
     localStorage.setItem(
@@ -127,8 +124,7 @@ function App() {
             prompt.trim()
 
           )
-
-          } `;
+          }`;
 
 
         setMessages((prev) => [
@@ -161,22 +157,14 @@ function App() {
             "application/json",
           Authorization: `Bearer ${import.meta.env
             .VITE_GROQ_API_KEY
-            } `,
+            }`,
         },
         body: JSON.stringify({
           model: "llama-3.1-8b-instant",
           messages: [
             {
               role: "system",
-              content: pdfContent
-                ? `You are a PDF assistant. Answer ONLY using the uploaded PDF content below.
-
-PDF CONTENT:
-${pdfContent}
-
-If the answer is not present in the PDF, say:
-"I couldn't find that information in the uploaded PDF."`
-                : "Respond in proper Markdown.",
+              content: "Respond in proper Markdown.",
             },
             ...conversationHistory,
             {
@@ -202,24 +190,6 @@ If the answer is not present in the PDF, say:
         data?.choices?.[0]?.message
           ?.content ||
         "No response received.";
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          type: "answer",
-          text: answer,
-        },
-      ]);
-    } catch (error) {
-      console.error(error);
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          type: "answer",
-          text: "Something went wrong.",
-        },
-      ]);
       const newChatItem = {
         id: selectedChatId || Date.now(),
         title: selectedChatId
@@ -264,6 +234,30 @@ If the answer is not present in the PDF, say:
 
       setRecentHistory(updatedHistory);
       setSelectedChatId(newChatItem.id);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "answer",
+          text: answer,
+        },
+      ]);
+    } catch (error) {
+      console.error(error);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "answer",
+          text: "Something went wrong.",
+        },
+      ]);
+      localStorage.setItem(
+        "history",
+        JSON.stringify(updatedHistory)
+      );
+
+
     } finally {
       setLoading(false);
     }
@@ -326,47 +320,6 @@ If the answer is not present in the PDF, say:
       console.error(err);
     }
   };
-  const handlePdfUpload = async (e) => {
-    const file = e.target.files[0];
-
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = async () => {
-      try {
-        const typedArray = new Uint8Array(
-          reader.result
-        );
-
-        const pdf = await pdfjsLib.getDocument({
-          data: typedArray,
-        }).promise;
-
-        let text = "";
-
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-
-          const content =
-            await page.getTextContent();
-
-          text += content.items
-            .map((item) => item.str)
-            .join(" ");
-        }
-
-        console.log("PDF loaded");
-        console.log(text.substring(0, 500));
-
-        setPdfContent(text);
-      } catch (err) {
-        console.error("PDF Error:", err);
-      }
-    };
-
-    reader.readAsArrayBuffer(file);
-  };
 
   return (
     <div
@@ -408,7 +361,7 @@ If the answer is not present in the PDF, say:
 
         <ChatInput
           mode={mode}
-          handlePdfUpload={handlePdfUpload}
+
           setMode={setMode}
           theme={theme}
           question={question}

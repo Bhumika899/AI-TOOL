@@ -7,7 +7,6 @@ import CodeBlock from "./CodeBlock";
 const Answer = ({ ans, theme }) => {
 
     const [copied, setCopied] = useState(false);
-    console.log("Copied state:", copied);
     const copyToClipboard = () => {
         console.log("BUTTON CLICKED");
         navigator.clipboard.writeText(ans);

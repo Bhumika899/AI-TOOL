@@ -86,9 +86,10 @@ function Sidebar({
                             ✏️
                         </button>
                         <button
-                            onClick={() =>
-                                togglePin(item.id)
-                            }
+                            onClick={() => {
+                                console.log("Clicked ID:", item.id);
+                                togglePin(item.id);
+                            }}
                         >
                             📌
                         </button>
